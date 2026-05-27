@@ -1,8 +1,61 @@
 <!doctype html>
-<html><head>
+<html lang="en">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Boarding-Pass Barcode Aztec QR Generator</title>
+
+<title>Boarding Pass Barcode Generator · 登机牌条码生成器 — PDF417 / Aztec / QR (BCBP)</title>
+<meta name="description" content="Free online IATA BCBP boarding pass barcode generator. Supports PDF417, Aztec, and QR. Edit multiple passes in a table, preview as realistic mockups, print or scan. | 免费在线 IATA BCBP 登机牌条码生成器，支持 PDF417、Aztec、QR 码，可批量编辑多行登机牌、实时预览样张、打印扫描。">
+<meta name="keywords" content="boarding pass, barcode generator, PDF417, Aztec, QR code, BCBP, IATA, mock boarding pass, airline ticket, 登机牌, 登机牌条码, 登机牌生成器, 条码生成器, 模拟登机牌, BCBP 条码, IATA 登机牌, 航空公司条码">
+<meta name="author" content="Harrilee">
+<meta name="robots" content="index, follow">
+
+<link rel="canonical" href="https://harrilee.github.io/BoardingBarcode/">
+<link rel="alternate" hreflang="en" href="https://harrilee.github.io/BoardingBarcode/?lang=en">
+<link rel="alternate" hreflang="zh" href="https://harrilee.github.io/BoardingBarcode/?lang=zh">
+<link rel="alternate" hreflang="x-default" href="https://harrilee.github.io/BoardingBarcode/">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Boarding Pass Barcode Generator · 登机牌条码生成器">
+<meta property="og:description" content="Generate IATA BCBP boarding pass barcodes (PDF417, Aztec, QR) and preview realistic mockups. 生成 IATA BCBP 登机牌条码并预览真实登机牌样张。">
+<meta property="og:url" content="https://harrilee.github.io/BoardingBarcode/">
+<meta property="og:site_name" content="BoardingBarcode">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Boarding Pass Barcode Generator · 登机牌条码生成器">
+<meta name="twitter:description" content="IATA BCBP barcode generator with multi-row editor, realistic mockups, PDF417/Aztec/QR. 多行编辑 · 真实登机牌样张 · 浅色/深色模式。">
+
+<meta name="theme-color" content="#003a70">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Boarding Pass Barcode Generator",
+  "alternateName": ["登机牌条码生成器", "BCBP Barcode Generator"],
+  "description": "Generate IATA BCBP boarding pass barcodes (PDF417, Aztec, QR) and preview as realistic boarding pass mockups. 生成 IATA BCBP 登机牌条码并预览真实登机牌样张。",
+  "url": "https://harrilee.github.io/BoardingBarcode/",
+  "inLanguage": ["en", "zh-CN"],
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript and WebAssembly",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "Harrilee", "url": "https://github.com/Harrilee" },
+  "codeRepository": "https://github.com/Harrilee/BoardingBarcode",
+  "featureList": [
+    "PDF417 / Aztec / QR barcode generation",
+    "IATA BCBP format compliant",
+    "Multi-row table editor",
+    "Realistic boarding pass mockups",
+    "Bilingual (English / 中文)",
+    "Print-ready output"
+  ]
+}
+</script>
+
 <script>
   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
@@ -15,37 +68,418 @@
 
 <script type="text/javascript">
 "use strict"
-    
-    
+
 var textOut = null
 var textIn = ""
 var fields = {}
 
-var run, getDayOfYear
-var ctx = null
-    
-function start() 
+var rows = []
+var activeRowIdx = 0
+
+var run
+var stdCtx = null
+
+var STORAGE_ROWS  = 'bp_rows_v1'
+var STORAGE_LANG  = 'bp_lang_v1'
+
+var currentLang  = 'en'
+
+var I18N = {
+    en: {
+        page_title:        'Boarding Pass Barcode Generator — PDF417 / Aztec / QR (BCBP)',
+        title:             'Boarding Pass Barcode Generator',
+        subtitle:          'Generate IATA BCBP barcodes (PDF417 / Aztec / QR). Edit multiple passes, preview as mockups, print or scan. Data is auto-saved locally.',
+        passenger_data:    'Passenger Data',
+        boarding_passes:   'Boarding Passes',
+        new_row:           '+ New Row',
+        new_row_title:     'Add a blank new row',
+        copy_selected:     '+ Copy Selected',
+        copy_title:        'Duplicate the selected row',
+        print_all:         '🖨 Print All',
+        print_title:       'Print all boarding passes',
+        clear_all:         'Clear All',
+        clear_title:       'Reset to a single default row',
+        col_first:         'First',
+        col_first_t:       'Passenger first name',
+        col_last:          'Last',
+        col_last_t:        'Passenger last name',
+        col_pnr:           'PNR',
+        col_pnr_t:         'Booking reference (PNR)',
+        col_from:          'From',
+        col_from_t:        'Origin airport (IATA 3-letter)',
+        col_to:            'To',
+        col_to_t:          'Destination airport (IATA 3-letter)',
+        col_op:            'Op',
+        col_op_t:          'Flight operator (IATA 2-letter)',
+        col_flt:           'Flt #',
+        col_flt_t:         'Flight number',
+        col_date:          'Date',
+        col_date_t:        'Flight date',
+        col_class:         'Class',
+        col_class_t:       'Travel class',
+        col_seat:          'Seat',
+        col_seat_t:        'Seat assignment',
+        col_seq:           'Seq',
+        col_seq_t:         'Boarding sequence number',
+        cls_first:         'First',
+        cls_business:      'Business',
+        cls_economy:       'Economy',
+        delete_title:      'Delete row',
+        active_title:      'Set active row',
+        col_num:           '#',
+        col_num_t:         'Boarding pass number',
+        adv_closed:        '▸ Advanced (raw data, code type, ECC)',
+        adv_open:          '▾ Advanced (raw data, code type, ECC)',
+        raw_label:         'Raw BCBP Data (active row):',
+        ecc_label:         'Error-Correction',
+        symsize_label:     'Symbol Size',
+        codetype_label:    'Code Type',
+        standalone_label:  'Standalone preview:',
+        m_passenger:       'Passenger',
+        m_pnr:             'PNR',
+        m_flight:          'Flight',
+        m_date:            'Date',
+        m_class:           'Class',
+        m_seat:            'Seat',
+        m_seq:             'Seq',
+        m_from:            'From',
+        m_to:              'To',
+        m_title:           '✈ BOARDING PASS',
+        confirm_delete:    'Delete boarding pass for {name}?',
+        confirm_clear:     'Remove all boarding passes and start fresh?',
+        err_lastname_long: 'last name longer than 18 characters',
+        err_name_long:     'first+last name longer than 20 characters',
+        err_field_long:    '"{name}" longer than {n} chars',
+        lang_toggle:       '中文',
+        footer_source:     'Source on GitHub',
+        footer_license:    'MIT License'
+    },
+    zh: {
+        page_title:        '登机牌条码生成器 — PDF417 / Aztec / QR（BCBP）',
+        title:             '登机牌条码生成器',
+        subtitle:          '生成 IATA BCBP 格式的登机牌条码（PDF417 / Aztec / QR），支持多行编辑、登机牌样张预览、打印与扫描。数据自动保存在本地。',
+        passenger_data:    '乘客信息',
+        boarding_passes:   '登机牌样张',
+        new_row:           '＋ 新增空行',
+        new_row_title:     '添加一行空白数据',
+        copy_selected:     '＋ 复制当前行',
+        copy_title:        '复制当前选中的行',
+        print_all:         '🖨 打印全部',
+        print_title:       '打印所有登机牌',
+        clear_all:         '清空',
+        clear_title:       '重置为一行默认数据',
+        col_first:         '名',
+        col_first_t:       '乘客名（First Name）',
+        col_last:          '姓',
+        col_last_t:        '乘客姓（Last Name）',
+        col_pnr:           'PNR',
+        col_pnr_t:         '订座记录编号（PNR）',
+        col_from:          '出发地',
+        col_from_t:        '出发机场（IATA 三字码）',
+        col_to:            '目的地',
+        col_to_t:          '到达机场（IATA 三字码）',
+        col_op:            '承运人',
+        col_op_t:          '航空公司代码（IATA 两字码）',
+        col_flt:           '航班号',
+        col_flt_t:         '航班号',
+        col_date:          '日期',
+        col_date_t:        '航班日期',
+        col_class:         '舱位',
+        col_class_t:       '舱位等级',
+        col_seat:          '座位',
+        col_seat_t:        '座位号',
+        col_seq:           '序号',
+        col_seq_t:         '登机序号',
+        cls_first:         '头等舱',
+        cls_business:      '商务舱',
+        cls_economy:       '经济舱',
+        delete_title:      '删除该行',
+        active_title:      '设为当前活动行',
+        col_num:           '#',
+        col_num_t:         '登机牌编号',
+        adv_closed:        '▸ 高级选项（原始数据 / 码型 / ECC）',
+        adv_open:          '▾ 高级选项（原始数据 / 码型 / ECC）',
+        raw_label:         '原始 BCBP 数据（当前行）：',
+        ecc_label:         '纠错等级',
+        symsize_label:     '符号大小',
+        codetype_label:    '码型',
+        standalone_label:  '独立条码预览：',
+        m_passenger:       '乘客',
+        m_pnr:             'PNR',
+        m_flight:          '航班',
+        m_date:            '日期',
+        m_class:           '舱位',
+        m_seat:            '座位',
+        m_seq:             '序号',
+        m_from:            '出发',
+        m_to:              '到达',
+        m_title:           '✈ 登 机 牌',
+        confirm_delete:    '确定删除 {name} 的登机牌？',
+        confirm_clear:     '确定清空所有登机牌并重置？',
+        err_lastname_long: '姓的长度超过 18 个字符',
+        err_name_long:     '姓 + 名总长超过 20 个字符',
+        err_field_long:    '"{name}" 超过 {n} 个字符',
+        lang_toggle:       'EN',
+        footer_source:     '查看 GitHub 源码',
+        footer_license:    'MIT 协议'
+    }
+}
+
+function t(key) {
+    var s = (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key
+    return s
+}
+function tf(key, vars) {
+    var s = t(key)
+    Object.keys(vars).forEach(function(k) { s = s.replace('{' + k + '}', vars[k]) })
+    return s
+}
+
+var FIELDS = [
+    { key: 'firstName', labelKey: 'col_first', titleKey: 'col_first_t', width: 90,  max: 18 },
+    { key: 'lastName',  labelKey: 'col_last',  titleKey: 'col_last_t',  width: 90,  max: 18 },
+    { key: 'bookRef',   labelKey: 'col_pnr',   titleKey: 'col_pnr_t',   width: 80,  max: 7, upper: true },
+    { key: 'from',      labelKey: 'col_from',  titleKey: 'col_from_t',  width: 60,  max: 3, upper: true, placeholder: 'XXX' },
+    { key: 'to',        labelKey: 'col_to',    titleKey: 'col_to_t',    width: 60,  max: 3, upper: true, placeholder: 'XXX' },
+    { key: 'fOp',       labelKey: 'col_op',    titleKey: 'col_op_t',    width: 60,  max: 3, upper: true, placeholder: 'XX' },
+    { key: 'fNum',      labelKey: 'col_flt',   titleKey: 'col_flt_t',   width: 70,  max: 5, placeholder: '0000' },
+    { key: 'date',      labelKey: 'col_date',  titleKey: 'col_date_t',  width: 140, type: 'date' },
+    { key: 'cls',       labelKey: 'col_class', titleKey: 'col_class_t', width: 90,  type: 'select',
+      opts: [['F','cls_first'],['C','cls_business'],['Y','cls_economy']] },
+    { key: 'seat',      labelKey: 'col_seat',  titleKey: 'col_seat_t',  width: 64,  max: 4, upper: true, placeholder: '00A' },
+    { key: 'seqNum',    labelKey: 'col_seq',   titleKey: 'col_seq_t',   width: 64,  max: 4, placeholder: '0001' }
+]
+
+var CLS_KEYS    = { F: 'cls_first', C: 'cls_business', Y: 'cls_economy' }
+var MON_NAMES   = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+
+function start()
 {
     run = Module.cwrap('run', null, ['number', 'string', 'number', 'number'])
+    stdCtx = standaloneCanvas.getContext('2d')
 
-    ctx = theimg3.getContext('2d')
+    detectInitialLang()
 
- //   var d = new Date()
- //   var dy = getDayOfYear(d.getDate(), d.getMonth(), d.getFullYear())
-  //  dayOfYearEd.value = '' + dy
-    dateEd.value = todayInputValue()
-    
-    formatName()
-    formatField('bookRef')
-    formatField('from')
-    formatField('to')
-    formatField('fOp')
-    formatField('fNum')
-    readDate()
-    formatClass()
-    formatSeat()
-    formatSeqNum()
-    format()
+    loadRows()
+    if (rows.length === 0) rows.push(defaultRow())
+
+    applyLang()
+}
+
+function detectInitialLang() {
+    /* Priority: URL ?lang= (shareable links / hreflang) > localStorage > navigator */
+    try {
+        var fromUrl = new URLSearchParams(window.location.search).get('lang')
+        if (fromUrl === 'en' || fromUrl === 'zh') { currentLang = fromUrl; return }
+    } catch (e) {}
+    var saved = null
+    try { saved = localStorage.getItem(STORAGE_LANG) } catch (e) {}
+    if (saved === 'en' || saved === 'zh') { currentLang = saved; return }
+    var nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase()
+    currentLang = nav.indexOf('zh') === 0 ? 'zh' : 'en'
+}
+
+function applyLang() {
+    document.documentElement.setAttribute('lang', currentLang === 'zh' ? 'zh-CN' : 'en')
+    document.title = t('page_title')
+    var els = document.querySelectorAll('[data-i18n]')
+    els.forEach(function(el) { el.textContent = t(el.getAttribute('data-i18n')) })
+    var elsT = document.querySelectorAll('[data-i18n-title]')
+    elsT.forEach(function(el) { el.title = t(el.getAttribute('data-i18n-title')) })
+    var langBtn = document.getElementById('langBtn')
+    if (langBtn) langBtn.textContent = t('lang_toggle')
+    // Toolbar buttons that have data-i18n already handled; tables/gallery need re-render
+    var advBox = document.getElementById('advanced')
+    var advBtn = document.getElementById('advToggle')
+    if (advBtn) advBtn.textContent = (advBox && advBox.classList.contains('open')) ? t('adv_open') : t('adv_closed')
+    renderTable()
+    rebuildGallery()
+    updateAll()
+}
+function toggleLang() {
+    currentLang = currentLang === 'zh' ? 'en' : 'zh'
+    try { localStorage.setItem(STORAGE_LANG, currentLang) } catch (e) {}
+    /* Update URL so the chosen language survives sharing/bookmarking */
+    try {
+        var url = new URL(window.location.href)
+        url.searchParams.set('lang', currentLang)
+        window.history.replaceState({}, '', url)
+    } catch (e) {}
+    applyLang()
+}
+
+function defaultRow() {
+    return {
+        firstName: 'John',
+        lastName:  'Doe',
+        bookRef:   'XYZ123',
+        from:      'ZRH',
+        to:        'SFO',
+        fOp:       'BA',
+        fNum:      '1234',
+        date:      todayInputValue(),
+        cls:       'F',
+        seat:      '35A',
+        seqNum:    '0001'
+    }
+}
+
+function todayInputValue() {
+    var local = new Date()
+    return local.toJSON().slice(0, 10)
+}
+
+function saveRows() {
+    try { localStorage.setItem(STORAGE_ROWS, JSON.stringify({ rows: rows, active: activeRowIdx })) }
+    catch (e) {}
+}
+function loadRows() {
+    try {
+        var raw = localStorage.getItem(STORAGE_ROWS)
+        if (!raw) return
+        var data = JSON.parse(raw)
+        if (data && Array.isArray(data.rows)) {
+            rows = data.rows
+            activeRowIdx = Math.min(data.active || 0, rows.length - 1)
+        }
+    } catch (e) {}
+}
+
+function addNewRow() {
+    rows.push(defaultRow())
+    activeRowIdx = rows.length - 1
+    renderTable()
+    rebuildGallery()
+    updateAll()
+    saveRows()
+    scrollToLast()
+}
+
+function copyActiveRow() {
+    var src = rows[activeRowIdx] || defaultRow()
+    var copy = {}
+    for (var k in src) copy[k] = src[k]
+    rows.push(copy)
+    activeRowIdx = rows.length - 1
+    renderTable()
+    rebuildGallery()
+    updateAll()
+    saveRows()
+    scrollToLast()
+}
+
+function scrollToLast() {
+    var el = document.getElementById('mockerGallery')
+    if (el && el.lastElementChild) el.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+function deleteRow(idx) {
+    if (rows.length <= 1) return
+    var name = ((rows[idx].firstName || '') + ' ' + (rows[idx].lastName || '')).trim() || '?'
+    if (!confirm(tf('confirm_delete', { name: name }))) return
+    rows.splice(idx, 1)
+    if (activeRowIdx >= rows.length) activeRowIdx = rows.length - 1
+    renderTable()
+    rebuildGallery()
+    updateAll()
+    saveRows()
+}
+
+function selectRow(idx) {
+    activeRowIdx = idx
+    renderTable()
+    updateStandalone()
+    saveRows()
+}
+
+function onCellInput(idx, key, val, fdef) {
+    if (fdef && fdef.upper) val = val.toUpperCase()
+    rows[idx][key] = val
+    if (idx === activeRowIdx) updateStandalone()
+    updateMockerCard(idx)
+    saveRows()
+}
+
+function renderTable() {
+    var thead = document.getElementById('rowsThead')
+    var tbody = document.getElementById('rowsTbody')
+
+    thead.innerHTML = ''
+    var htr = document.createElement('tr')
+    var thIdx = document.createElement('th'); thIdx.textContent = t('col_num'); thIdx.title = t('col_num_t'); htr.appendChild(thIdx)
+    var thSel = document.createElement('th'); thSel.textContent = ''; thSel.title = t('active_title'); htr.appendChild(thSel)
+    FIELDS.forEach(function(f) {
+        var th = document.createElement('th')
+        th.textContent = t(f.labelKey)
+        th.title = t(f.titleKey)
+        htr.appendChild(th)
+    })
+    var thAction = document.createElement('th'); htr.appendChild(thAction)
+    thead.appendChild(htr)
+
+    tbody.innerHTML = ''
+    rows.forEach(function(r, i) {
+        var tr = document.createElement('tr')
+        if (i === activeRowIdx) tr.className = 'activeRow'
+
+        var tdIdx = document.createElement('td')
+        tdIdx.className = 'rowNum'
+        tdIdx.textContent = (i + 1)
+        tr.appendChild(tdIdx)
+
+        var tdSel = document.createElement('td')
+        var radio = document.createElement('input')
+        radio.type = 'radio'
+        radio.name = 'rowSel'
+        radio.checked = (i === activeRowIdx)
+        radio.title = t('active_title')
+        radio.onchange = function() { selectRow(i) }
+        tdSel.appendChild(radio)
+        tr.appendChild(tdSel)
+
+        FIELDS.forEach(function(f) {
+            var td = document.createElement('td')
+            var inp
+            if (f.type === 'select') {
+                inp = document.createElement('select')
+                f.opts.forEach(function(o) {
+                    var opt = document.createElement('option')
+                    opt.value = o[0]
+                    opt.textContent = t(o[1])
+                    if (r[f.key] === o[0]) opt.selected = true
+                    inp.appendChild(opt)
+                })
+                inp.onchange = function() { onCellInput(i, f.key, inp.value, f) }
+            } else {
+                inp = document.createElement('input')
+                inp.type = f.type || 'text'
+                inp.value = r[f.key]
+                if (f.max) inp.maxLength = f.max
+                if (f.placeholder) inp.placeholder = f.placeholder
+                if (f.upper) inp.style.textTransform = 'uppercase'
+                inp.oninput = function() {
+                    if (f.upper) inp.value = inp.value.toUpperCase()
+                    onCellInput(i, f.key, inp.value, f)
+                }
+            }
+            inp.style.width = (f.width - 8) + 'px'
+            inp.onfocus = function() { if (i !== activeRowIdx) selectRow(i) }
+            td.appendChild(inp)
+            tr.appendChild(td)
+        })
+
+        var tdAct = document.createElement('td')
+        var del = document.createElement('button')
+        del.textContent = '×'
+        del.title = t('delete_title')
+        del.className = 'delBtn'
+        del.disabled = rows.length <= 1
+        del.onclick = function() { deleteRow(i) }
+        tdAct.appendChild(del)
+        tr.appendChild(tdAct)
+
+        tbody.appendChild(tr)
+    })
 }
 
 function errclear() {
@@ -59,264 +493,806 @@ function err(msg) {
     }
 }
 
-function update(fromRaw)
-{
-    if (!fromRaw)
-        textEdit.value = textIn
-    else
-        textIn = textEdit.value
-    var ecc =  parseInt(eccSelect.value)
-    var ssize = parseInt(symSize.value)  // if this is 0, ecc is used
+function upPadRight(s, n) {
+    s = (s || '').toUpperCase()
+    while (s.length < n) s = s + ' '
+    return s.substr(0, n)
+}
+function padLeft(s, n) {
+    s = ((s || '') + '').toUpperCase()
+    while (s.length < n) s = '0' + s
+    return s.substr(0, n)
+}
+function dayOfYear(yr, mon, mday) {
+    var now = new Date(yr, mon, mday, 1, 0, 0)
+    var start = new Date(yr, 0, 1, 0, 0)
+    var diff = now - start
+    var oneDay = 1000 * 60 * 60 * 24
+    return Math.floor(diff / oneDay) + 1
+}
+
+var FLD_DEF = {
+    bookRef: { pad: 7, desc: 'col_pnr' },
+    from:    { pad: 3, desc: 'col_from' },
+    to:      { pad: 3, desc: 'col_to' },
+    fOp:     { pad: 3, desc: 'col_op' },
+    fNum:    { pad: 5, desc: 'col_flt' }
+}
+
+function buildFields(r) {
+    errclear()
+    if ((r.lastName || '').length > 18) err(t('err_lastname_long'))
+    var v = (r.lastName || '') + '/' + (r.firstName || '')
+    if (v.length > 21) err(t('err_name_long'))
+    fields.name = upPadRight(v, 20)
+
+    Object.keys(FLD_DEF).forEach(function(k) {
+        var def = FLD_DEF[k]
+        var val = r[k] || ''
+        if (val.length > def.pad)
+            err(tf('err_field_long', { name: t(def.desc), n: def.pad }))
+        fields[k] = upPadRight(val, def.pad)
+    })
+
+    var dl = (r.date || todayInputValue()).split('-')
+    var day = dayOfYear(parseInt(dl[0]), parseInt(dl[1]) - 1, parseInt(dl[2]))
+    fields.date = padLeft('' + day, 3)
+    fields.cls = r.cls
+    fields.seat = padLeft(r.seat || '', 4)
+    fields.seqNum = upPadRight(padLeft(r.seqNum || '', 4), 5)
+}
+
+function buildBcbpText(r) {
+    buildFields(r)
+    return 'M1' + fields.name + 'E' + fields.bookRef + fields.from + fields.to
+         + fields.fOp + fields.fNum + fields.date + fields.cls + fields.seat + fields.seqNum
+         + '1' + '00'
+}
+
+function svgToObjectUrl(svgText) {
+    var blob = new Blob([svgText], { type: 'image/svg+xml' })
+    return URL.createObjectURL(blob)
+}
+function setImgSvg(img, svgText) {
+    var prev = img.dataset.url
+    var url = svgToObjectUrl(svgText)
+    img.src = url
+    img.dataset.url = url
+    if (prev) setTimeout(function() { URL.revokeObjectURL(prev) }, 50)
+}
+
+function updateAll() {
+    rows.forEach(function(_, i) { updateMockerCard(i) })
+    updateStandalone()
+}
+
+function updateStandalone() {
+    var r = rows[activeRowIdx]
+    if (!r) return
+    var ttxt = buildBcbpText(r)
+    textIn = ttxt
+    textEdit.value = ttxt
+
+    var ecc = parseInt(eccSelect.value)
+    var ssize = parseInt(symSize.value)
+    var btype = parseInt(codeTypeSel.value)
+    run(btype, ttxt, ecc, ssize)
+    var svg = textOut
+
+    var img = standaloneImg
+    img.onload = function() {
+        standaloneCanvas.width = img.naturalWidth
+        standaloneCanvas.height = img.naturalHeight
+        stdCtx.drawImage(img, 0, 0)
+    }
+    setImgSvg(img, svg)
+}
+
+function updateRaw() {
+    textIn = textEdit.value
+    var ecc = parseInt(eccSelect.value)
+    var ssize = parseInt(symSize.value)
     var btype = parseInt(codeTypeSel.value)
     run(btype, textIn, ecc, ssize)
-    
- //   theimg.innerHTML = textOut
-    
-    theimg2.onload = function() {
-        theimg3.width = theimg2.width
-        theimg3.height = theimg2.height
-        ctx.drawImage(theimg2, 0, 0)
+    var svg = textOut
+    var img = standaloneImg
+    img.onload = function() {
+        standaloneCanvas.width = img.naturalWidth
+        standaloneCanvas.height = img.naturalHeight
+        stdCtx.drawImage(img, 0, 0)
     }
- 
-    var b = new Blob([textOut], {type: "image/svg+xml"});
-    var reader = new FileReader();
-    reader.onload = function(e) { 
-        theimg2.src = e.target.result 
-    }
-    reader.onerror = function(e) {
-        console.log(e)
-    }
-    reader.readAsDataURL(b); // read as data URL since we want to put it in an img src
-        
+    setImgSvg(img, svg)
 }
-
-function format() {
-    textIn = "M1" + fields.name + "E" + fields.bookRef + fields.from + fields.to 
-             + fields.fOp + fields.fNum + fields.date + fields.cls + fields.seat + fields.seqNum
-             + "1" + "00"
-             // 1 passenger status, 00 - hex length of following data
-    update()
-}
-function upPadRight(s, n) {
-    s = s.toUpperCase()
-    while(s.length < n)
-        s = s + ' ';
-    return s.substr(0,n)
-}
-
-function padLeft(s, n) {
-    s = s.toUpperCase()
-    while(s.length < n)
-        s = '0' + s;
-    return s.substr(0,n)
-}
-
-function formatName(doRun) {
-    errclear()
-    if (lastNameEd.value.length > 18) // need space for slash and last name
-        err("first name longer than 18 charcters")
-    var v = lastNameEd.value + "/" + firstNameEd.value
-    if (v.length > 20)
-        err("first+last name longer than 20 characters")
-
-    fields.name = upPadRight(v, 20)
-    if (doRun)
-        format()
-}
-
-var fldDef = {
-    'bookRef': { pad: 7, desc:"Booking Ref"},
-    'from':    { pad: 3, desc:"From"},
-    'to':      { pad: 3, desc:"To"},
-    'fOp':     { pad: 3, desc:"Flight Operator"},
-    'fNum':    { pad: 5, desc:"Flight Number"}
-}
-
-function formatField(name, doRun) {
-    errclear('')
-    var def = fldDef[name]
-    var v = document.getElementById(name + "Ed").value
-    if (v.length > def.pad)
-        err('"' + def.desc + '" longer than ' + def.pad + " chars")
-    fields[name] = upPadRight(v, def.pad)
-    if (doRun)
-        format()
-}
-
-function formatDay(doRun) {
-    fields.date = padLeft(dayOfYearEd.value, 3)
-    if (doRun)
-        format()
-}
-function todayInputValue() { // http://stackoverflow.com/questions/6982692/html5-input-type-date-default-value-to-today
-    var local = new Date();
- //   local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
-    return local.toJSON().slice(0,10);
-}
-
-function dayOfYear(yr, mon, mday)
-{
-    var now = new Date(yr, mon, mday, 1, 0, 0)
-    var start = new Date(yr, 0, 1, 0, 0);
-    var diff = now - start;
-    var oneDay = 1000 * 60 * 60 * 24;
-    var day = Math.floor(diff / oneDay) + 1; // start at 1
-    return day
-}
-
-function readDate(toRun) {
-    var dl = dateEd.value.split('-')
-    var mday = parseInt(dl[2])
-    var mon = parseInt(dl[1]) - 1  // the range of the input is [1-12]
-    var yr = parseInt(dl[0])
-    
-    dayOfYearEd.value = dayOfYear(yr, mon, mday)
-    formatDay(toRun)
-}
-function formatClass(doRun) {
-    fields.cls = classSel.value
-    if (doRun)
-        format()
-}
-function formatSeat(doRun) {
-    errclear()
-    var n = seatNumEd.value
-    if (n.length > 4)
-        err("Seat longer than 4 chars")
-    fields.seat = padLeft(n, 4)
-    if (doRun)
-        format()
-}
-function formatSeqNum(doRun) {
-    errclear()
-    var n = seqNumEd.value
-    if (n.length > 4)
-        err("Seat longer than 4 chars")    
-    fields.seqNum = upPadRight(padLeft(n, 4), 5)
-    if (doRun)
-        format()
-}    
 
 function typeUpdate() {
-    if (codeTypeSel.value == "0")
-        symSize.value = "11"  // size of the aztec
-    else
-        symSize.value = "6"  // columns in the barcode
-    update()
+    if (codeTypeSel.value == '0') symSize.value = '11'
+    else symSize.value = '6'
+    updateStandalone()
+}
+
+function rebuildGallery() {
+    var gallery = document.getElementById('mockerGallery')
+    while (gallery.children.length < rows.length) {
+        gallery.appendChild(createMockerCard(gallery.children.length))
+    }
+    while (gallery.children.length > rows.length) {
+        var last = gallery.lastChild
+        var imgs = last.getElementsByTagName('img')
+        for (var i = 0; i < imgs.length; i++) {
+            if (imgs[i].dataset.url) URL.revokeObjectURL(imgs[i].dataset.url)
+        }
+        gallery.removeChild(last)
+    }
+    rows.forEach(function(_, i) {
+        var card = gallery.children[i]
+        card.dataset.idx = i
+        card.querySelector('.m-passnum').textContent = '#' + (i + 1)
+        card.querySelector('.m-title').textContent = t('m_title')
+        card.querySelector('.m-label-passenger').textContent = t('m_passenger')
+        card.querySelector('.m-label-pnr').textContent = t('m_pnr')
+        card.querySelector('.m-label-flight').textContent = t('m_flight')
+        card.querySelector('.m-label-date').textContent = t('m_date')
+        card.querySelector('.m-label-class').textContent = t('m_class')
+        card.querySelector('.m-label-seat').textContent = t('m_seat')
+        card.querySelector('.m-label-seq').textContent = t('m_seq')
+        card.querySelector('.m-label-from').textContent = t('m_from')
+        card.querySelector('.m-label-to').textContent = t('m_to')
+    })
+}
+
+function createMockerCard(idx) {
+    var card = document.createElement('div')
+    card.className = 'mocker'
+    card.innerHTML =
+        '<div class="m-header">'
+        + '<div class="m-title"></div>'
+        + '<div class="m-passnum"></div>'
+        + '</div>'
+        + '<div class="m-body">'
+        +   '<div class="m-top-row">'
+        +     '<div class="m-field m-name-field"><span class="m-label m-label-passenger"></span><span class="m-val m-name"></span></div>'
+        +     '<div class="m-field m-pnr-field"><span class="m-label m-label-pnr"></span><span class="m-val m-pnr"></span></div>'
+        +   '</div>'
+        +   '<div class="m-route">'
+        +     '<div class="m-airport-block"><div class="m-airport m-from"></div><div class="m-label m-label-from"></div></div>'
+        +     '<div class="m-arrow">━━━ ✈ ━━━▶</div>'
+        +     '<div class="m-airport-block right"><div class="m-airport m-to"></div><div class="m-label m-label-to"></div></div>'
+        +   '</div>'
+        +   '<div class="m-grid">'
+        +     '<div class="m-field"><span class="m-label m-label-flight"></span><span class="m-val m-flight"></span></div>'
+        +     '<div class="m-field"><span class="m-label m-label-date"></span><span class="m-val m-date"></span></div>'
+        +     '<div class="m-field"><span class="m-label m-label-class"></span><span class="m-val m-class"></span></div>'
+        +     '<div class="m-field"><span class="m-label m-label-seat"></span><span class="m-val m-seat"></span></div>'
+        +     '<div class="m-field"><span class="m-label m-label-seq"></span><span class="m-val m-seq"></span></div>'
+        +   '</div>'
+        + '</div>'
+        + '<div class="m-tear"></div>'
+        + '<div class="m-barcode">'
+        +   '<img class="m-bc-img" alt="PDF417 barcode">'
+        + '</div>'
+    return card
+}
+
+function updateMockerCard(idx) {
+    var r = rows[idx]
+    if (!r) return
+    var card = document.getElementById('mockerGallery').children[idx]
+    if (!card) return
+
+    var dl = (r.date || todayInputValue()).split('-')
+    var mon = parseInt(dl[1]) - 1
+    var mday = parseInt(dl[2])
+    var dispDate = padLeft('' + mday, 2) + MON_NAMES[mon]
+
+    card.querySelector('.m-name').textContent   = ((r.lastName || '') + '/' + (r.firstName || '')).toUpperCase()
+    card.querySelector('.m-pnr').textContent    = (r.bookRef || '').toUpperCase()
+    card.querySelector('.m-from').textContent   = (r.from || '').toUpperCase()
+    card.querySelector('.m-to').textContent     = (r.to || '').toUpperCase()
+    card.querySelector('.m-flight').textContent = ((r.fOp || '') + (r.fNum || '')).toUpperCase()
+    card.querySelector('.m-date').textContent   = dispDate
+    var clsEl = card.querySelector('.m-class')
+    clsEl.textContent = t(CLS_KEYS[r.cls] || 'cls_economy')
+    clsEl.className = 'm-val m-class m-class-' + (r.cls || 'Y')
+    card.querySelector('.m-seat').textContent   = (r.seat || '').toUpperCase()
+    card.querySelector('.m-seq').textContent    = (r.seqNum || '')
+
+    var ttxt = buildBcbpText(r)
+    run(1, ttxt, 0, 6)
+    setImgSvg(card.querySelector('.m-bc-img'), textOut)
+}
+
+function printPasses() { window.print() }
+
+function clearAll() {
+    if (!confirm(t('confirm_clear'))) return
+    rows = [defaultRow()]
+    activeRowIdx = 0
+    renderTable()
+    rebuildGallery()
+    updateAll()
+    saveRows()
+}
+
+function toggleAdvanced() {
+    var box = document.getElementById('advanced')
+    var btn = document.getElementById('advToggle')
+    var open = box.classList.toggle('open')
+    btn.textContent = open ? t('adv_open') : t('adv_closed')
 }
 
 </script>
 <script src="js_qr_brd.js"></script>
 <style>
-#textEdit {
-    width: 100%;
-    max-width: 500px;
+:root {
+    --bg:           #f4f6f8;
+    --surface:      #fff;
+    --surface-2:    #fafbfc;
+    --surface-alt:  #f0f3f7;
+    --text:         #222;
+    --text-dim:     #666;
+    --text-faint:   #888;
+    --border:       #ddd;
+    --border-2:     #e0e3e8;
+    --border-strong:#ccd;
+    --accent:       #003a70;
+    --accent-2:     #0056b3;
+    --accent-fg:    #fff;
+    --row-active:   #fffbe6;
+    --row-active-fg:#003a70;
+    --danger:       #c00;
+    --danger-bg:    #fee;
+    --shadow-card:  0 1px 2px rgba(0,0,0,0.05);
+    --shadow-pass:  0 2px 12px rgba(0,0,0,0.10);
+    --focus-ring:   rgba(0,86,179,0.20);
+
+    --cls-F: #7a4a00;
+    --cls-C: #2a3f8f;
+    --cls-Y: #003a70;
 }
-body, input {
-    font-family: monospace;
+
+* { box-sizing: border-box; }
+html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
 }
-input, #classSel {
-    font-size: 130%;
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', Helvetica, Arial, sans-serif;
+    padding: 16px 20px 60px;
 }
+.page {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.topbar .title-wrap { flex: 1; }
+.topbar .controls {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.icon-btn {
+    cursor: pointer;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 5px;
+    font-size: 14px;
+    line-height: 1;
+    min-height: 32px;
+    min-width: 36px;
+    transition: all 0.15s;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+h1 {
+    font-size: 22px;
+    margin: 0 0 4px;
+    color: var(--accent);
+    font-weight: 700;
+}
+.subtitle {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 18px;
+    line-height: 1.5;
+    max-width: 720px;
+}
+h2 {
+    font-size: 12px;
+    margin: 22px 0 8px;
+    color: var(--text-dim);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
 #errMsg {
     position: fixed;
-    top: 0;
-    left: 0;
-    color: red;
-    font-size: 130%;
-    background-color: #fee;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--danger);
+    font-size: 13px;
+    background-color: var(--danger-bg);
     text-align: center;
-    width: 96%;
-    padding: 4px;
-    border: red solid 1px;
+    padding: 8px 16px;
+    border: 1px solid var(--danger);
+    border-radius: 4px;
     visibility: hidden;
-    max-width: 500px;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
-#theimg {
-    margin: 5px;
-    max-width: 500px;
-    margin: 20px 0 420px 0;    
+
+.toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
 }
-#theimg2 {
-   /*display: none;*/
-   visibility: hidden;
-   position: fixed; /* IE display none causes size to be 0 */
+.toolbar button {
+    cursor: pointer;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 5px;
+    font-size: 13px;
+    transition: all 0.15s;
 }
-#theimg3 {
+.toolbar button:hover {
+    border-color: var(--accent);
+    background: var(--surface-alt);
+}
+.toolbar .primary {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+}
+.toolbar .primary:hover {
+    background: var(--accent-2);
+    border-color: var(--accent-2);
+    color: var(--accent-fg);
+}
+.toolbar .danger { color: var(--danger); }
+.toolbar .danger:hover {
+    border-color: var(--danger);
+    background: var(--danger-bg);
+}
+.toolbar .spacer { flex: 1; }
+
+#tableWrap {
+    overflow-x: auto;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+}
+#rowsTable {
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 100%;
+}
+#rowsTable th, #rowsTable td {
+    padding: 6px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+#rowsTable th {
+    font-weight: 600;
+    background: var(--surface-alt);
+    border-bottom: 2px solid var(--border-strong);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    cursor: help;
+}
+#rowsTable tr.activeRow { background: var(--row-active); }
+#rowsTable tr.activeRow .rowNum {
+    color: var(--row-active-fg);
+    font-weight: bold;
+}
+.rowNum {
+    color: var(--text-faint);
+    font-weight: 500;
+    text-align: center !important;
+    font-size: 12px;
+}
+#rowsTable input, #rowsTable select {
+    font-size: 13px;
+    padding: 4px 6px;
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: inherit;
+    background: var(--surface);
+    color: var(--text);
+}
+#rowsTable input:focus, #rowsTable select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--focus-ring);
+}
+.delBtn {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    font-size: 18px;
+    line-height: 1;
+    padding: 0;
+    transition: all 0.15s;
+}
+.delBtn:hover:not(:disabled) {
+    border-color: var(--danger);
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+.delBtn:disabled {
+    color: var(--border);
+    cursor: not-allowed;
+}
+
+/* ------- Boarding pass mocker (always light/paper) -------
+   Target aspect ratio: ~2:1 to 2.4:1 to match IATA ATB2 (≈2.46:1) */
+#mockerGallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+.mocker {
+    background: #fff;
+    color: #222;
+    border-radius: 10px;
+    box-shadow: var(--shadow-pass);
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    max-width: 560px;
+}
+.mocker .m-header {
+    background: linear-gradient(135deg, #003a70 0%, #0056b3 100%);
+    color: #fff;
+    padding: 9px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.mocker .m-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+.mocker .m-passnum {
+    font-size: 11px;
+    background: rgba(255,255,255,0.20);
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+.mocker .m-body {
+    padding: 10px 14px 6px;
+}
+.mocker .m-label {
+    font-size: 9px;
+    color: #8a8a8a;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 600;
+}
+.mocker .m-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #222;
+}
+.mocker .m-top-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+.mocker .m-name-field { flex: 1; min-width: 0; }
+.mocker .m-pnr-field { text-align: right; }
+.mocker .m-name-field .m-val {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+.mocker .m-route {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 8px 0 6px;
+    margin: 4px 0;
+    border-top: 1px dashed #d8dde3;
+    border-bottom: 1px dashed #d8dde3;
+}
+.mocker .m-airport-block { text-align: left; }
+.mocker .m-airport-block.right { text-align: right; }
+.mocker .m-airport {
+    font-size: 30px;
+    font-weight: 800;
+    color: #003a70;
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+.mocker .m-arrow {
+    font-size: 13px;
+    color: #b0b0b0;
+    padding-bottom: 4px;
+    letter-spacing: -1px;
+}
+.mocker .m-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-top: 4px;
+}
+.mocker .m-tear {
+    height: 1px;
+    margin: 4px 14px 0;
+    border-top: 2px dashed #cfd4db;
+    position: relative;
+}
+.mocker .m-tear::before, .mocker .m-tear::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    width: 18px;
+    height: 18px;
+    background: var(--bg);
+    border-radius: 50%;
+}
+.mocker .m-tear::before { left: -23px; }
+.mocker .m-tear::after  { right: -23px; }
+.mocker .m-barcode {
+    background: #fff;
+    padding: 8px 14px 12px;
+    text-align: center;
+}
+.mocker .m-bc-img {
     width: 100%;
-    margin: 5px;
-    max-width: 500px;
-    margin: 20px 0 420px 0;    
+    height: 60px;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    display: block;
+    object-fit: fill;
 }
-.unimpCol {
-    color: #bbb;
-}
-#inputArea {
-    font-size: 120%;
-}
-.tlabel {
+.mocker .m-class-F { color: var(--cls-F); }
+.mocker .m-class-C { color: var(--cls-C); }
+.mocker .m-class-Y { color: var(--cls-Y); }
+
+/* ------- Advanced ------- */
+#advToggle {
     display: inline-block;
-    margin-top: 7px;
+    cursor: pointer;
+    padding: 8px 0;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    text-align: left;
 }
-#codeTypeSel {
-    font-size: 120%;
+#advToggle:hover { color: var(--accent); }
+#advanced {
+    display: none;
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+}
+#advanced.open { display: block; }
+#advanced label {
+    display: inline-block;
+    margin-right: 6px;
+    color: var(--text-dim);
+}
+#advanced select, #advanced input[type="number"] {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 6px;
+}
+#advanced .adv-row { margin-bottom: 10px; }
+#textEdit {
+    width: 100%;
+    max-width: 600px;
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 12px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    resize: vertical;
+    background: var(--surface);
+    color: var(--text);
+}
+#standaloneImg {
+    visibility: hidden;
+    position: fixed;
+    pointer-events: none;
+}
+#standaloneCanvas {
+    margin-top: 8px;
+    max-width: 500px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+/* ------- Footer ------- */
+.page-footer {
+    margin-top: 48px;
+    padding: 20px 0 8px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.page-footer .footer-meta {
+    color: var(--text-faint);
+    font-size: 12px;
+}
+.page-footer a {
+    color: var(--text-dim);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    transition: all 0.15s;
+}
+.page-footer a:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--surface);
+}
+.page-footer svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+
+/* ------- Responsive ------- */
+@media (max-width: 600px) {
+    body { padding: 10px; }
+    .mocker .m-airport { font-size: 24px; }
+    .mocker .m-grid { grid-template-columns: repeat(3, 1fr); }
+    #mockerGallery { grid-template-columns: 1fr; }
+    h1 { font-size: 18px; }
+    .page-footer { flex-direction: column; align-items: flex-start; }
+}
+
+/* ------- Print ------- */
+@media print {
+    body * { visibility: hidden; }
+    #mockerGallery, #mockerGallery * { visibility: visible; }
+    body { background: #fff; padding: 0; }
+    .page { max-width: none; }
+    #mockerGallery {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: block;
+        gap: 0;
+    }
+    .mocker {
+        box-shadow: none;
+        border: 1px solid #aaa;
+        margin: 8px;
+        page-break-inside: avoid;
+        max-width: none;
+    }
 }
 
 </style>
 </head>
-<body id="body" onload="start()" >
+<body id="body" onload="start()">
 <div id="errMsg"></div>
-<div id="inputArea">
-<span class="tlabel">First Name</span><br>
-<input id="firstNameEd" type="text" value="John" oninput="formatName(true)"><br>
-<span class="tlabel">Last Name</span><br>
-<input id="lastNameEd" type="text" value="Doe" oninput="formatName(true)"><br>
-<span class="unimpCol tlabel">Booking-Ref</span><br>
-<input id="bookRefEd" class="unimpCol" type="text" value="XYZ123" oninput="formatField('bookRef', true)"><br>
-<span class="tlabel">From</span><br>
-<input id="fromEd" type="text" value="ZRH" oninput="formatField('from', true)"><br>
-<span class="tlabel">To</span><br>
-<input id="toEd" type="text" value="SFO" oninput="formatField('to', true)"><br>
-<span class="tlabel">Flight Operator</span><br>
-<input id="fOpEd" type="text" value="BA" oninput="formatField('fOp',true)"><br>
-<span class="tlabel">Flight Number</span><br>
-<input id="fNumEd" type="text" value="1234" oninput="formatField('fNum', true)"><br>
-<span class="tlabel">Date</span><br>
-<input id="dateEd" type="date" oninput="readDate(true)"><br>
-<span class="unimpCol tlabel">Day in year</span><br>
-<input id="dayOfYearEd" type="text" class="unimpCol" value="0" oninput="formatDay(true)"><br>
-<span class="tlabel">Class</span><br>
-<select id="classSel" onchange="formatClass(true)">
-  <option value="F">First</option>
-  <option value="C">Business</option>
-  <option value="Y">Economy</option>
-</select><br>
-<span class="tlabel">Seat</span><br>
-<input id="seatNumEd" type="text" value="35A" oninput="formatSeat(true)"><br>
-<span class="unimpCol tlabel">Boarding Index</span><br>
-<input id="seqNumEd" class="unimpCol" type="text" value="0001" oninput="formatSeqNum(true)"><br>
-</div>
-<span class="unimpCol">Raw Data:</span><br>
-<textarea id="textEdit" rows="4" cols="50" class="unimpCol" oninput="update(true)">
-hello</textarea>
-<br><span class="unimpCol">Error-Correction</span>
-<select id="eccSelect" class="unimpCol" onchange="update()">
-  <option value="0">-1</option>
-  <option value="0">0</option>
-  <option value="1">1</option>
-  <option value="2">2</option>
-  <option value="3">3</option>
-</select>
-<br><span class="unimpCol">Symbol-Size</span>
-<input id="symSize" type="number" class="unimpCol" onchange="update()" value="11">
-<br><select id="codeTypeSel" class="unimpCol" onchange="typeUpdate()">
-  <option value="0">aztec</option>
-  <option value="1">pdf417</option>
-</select>
 
-<br><br>
-<!-- <div id="theimg"></div> -->
- <img id="theimg2">   
- <canvas id="theimg3"></canvas>
+<div class="page">
+
+<div class="topbar">
+    <div class="title-wrap">
+        <h1 data-i18n="title"></h1>
+        <div class="subtitle" data-i18n="subtitle"></div>
+    </div>
+    <div class="controls">
+        <button class="icon-btn" id="langBtn" onclick="toggleLang()" data-i18n-title="lang_toggle" aria-label="Language"></button>
+    </div>
+</div>
+
+<h2 data-i18n="passenger_data"></h2>
+<div class="toolbar">
+    <button class="primary" onclick="addNewRow()" data-i18n="new_row" data-i18n-title="new_row_title"></button>
+    <button onclick="copyActiveRow()" data-i18n="copy_selected" data-i18n-title="copy_title"></button>
+    <button onclick="printPasses()" data-i18n="print_all" data-i18n-title="print_title"></button>
+    <div class="spacer"></div>
+    <button class="danger" onclick="clearAll()" data-i18n="clear_all" data-i18n-title="clear_title"></button>
+</div>
+
+<div id="tableWrap">
+    <table id="rowsTable">
+        <thead id="rowsThead"></thead>
+        <tbody id="rowsTbody"></tbody>
+    </table>
+</div>
+
+<h2 data-i18n="boarding_passes"></h2>
+<div id="mockerGallery"></div>
+
+<button id="advToggle" onclick="toggleAdvanced()"></button>
+<div id="advanced">
+    <div class="adv-row">
+        <label data-i18n="raw_label"></label><br>
+        <textarea id="textEdit" rows="3" oninput="updateRaw()"></textarea>
+    </div>
+    <div class="adv-row">
+        <label data-i18n="ecc_label"></label>
+        <select id="eccSelect" onchange="updateStandalone()">
+            <option value="0">-1</option>
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+        </select>
+        <label style="margin-left:12px" data-i18n="symsize_label"></label>
+        <input id="symSize" type="number" onchange="updateStandalone()" value="11" style="width:60px">
+        <label style="margin-left:12px" data-i18n="codetype_label"></label>
+        <select id="codeTypeSel" onchange="typeUpdate()">
+            <option value="0">Aztec</option>
+            <option value="1">PDF417</option>
+        </select>
+    </div>
+    <div class="adv-row">
+        <label data-i18n="standalone_label"></label><br>
+        <canvas id="standaloneCanvas"></canvas>
+        <img id="standaloneImg">
+    </div>
+</div>
+
+<footer class="page-footer">
+    <a href="https://github.com/Harrilee/BoardingBarcode" target="_blank" rel="noopener" data-i18n-title="footer_source">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.87-1.54-3.87-1.54-.52-1.34-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.51-1.47.11-3.06 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.89-.39.98 0 1.97.13 2.89.39 2.21-1.49 3.18-1.18 3.18-1.18.62 1.59.23 2.77.11 3.06.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.68.8.56C20.21 21.38 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5Z"/></svg>
+        <span data-i18n="footer_source"></span>
+    </a>
+    <span class="footer-meta" data-i18n="footer_license"></span>
+</footer>
+
+</div>
+
 </body>
 </html>
